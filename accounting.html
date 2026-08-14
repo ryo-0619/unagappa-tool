@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>会計アプリ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="header">
+  <h1>会計アプリ</h1>
+</header>
+
+<main class="container">
+  <!-- メンバー一覧・追加 -->
+  <section>
+    <h2>メンバー</h2>
+    <div id="memberList" class="member-list"></div>
+
+    <div class="form-group">
+      <label for="newMemberName">メンバー追加</label>
+      <input id="newMemberName" type="text" placeholder="名前">
+    </div>
+    <button class="btn" id="addMemberBtn">追加</button>
+  </section>
+
+  <hr>
+
+  <!-- 支払い登録 -->
+  <section>
+    <h2>支払い登録</h2>
+
+    <div class="form-group">
+      <label>支払い内容</label>
+      <input id="payTitle" type="text">
+    </div>
+
+    <div class="form-group">
+      <label>支払日</label>
+      <input id="payDate" type="date">
+    </div>
+
+    <div class="form-group">
+      <label>支払者（複数選択可）</label>
+      <div id="payerList" class="member-list"></div>
+    </div>
+
+    <div id="payerAmounts"></div>
+
+    <div class="form-group">
+      <label>支払ってもらった人（複数選択可）</label>
+      <div id="receiverList" class="member-list"></div>
+    </div>
+
+    <div id="receiverAmounts"></div>
+
+    <button class="btn" id="splitButton">割り勘計算</button>
+
+    <h3>確認</h3>
+    <div id="confirmArea"></div>
+
+    <button class="btn" id="registerPaymentBtn">支払い登録</button>
+  </section>
+
+  <hr>
+
+  <!-- 返金ページ -->
+  <section>
+    <h2>返金登録</h2>
+
+    <div class="form-group">
+      <label>支払う人</label>
+      <select id="refundFrom"></select>
+    </div>
+
+    <div class="form-group">
+      <label>受け取る人</label>
+      <select id="refundTo"></select>
+    </div>
+
+    <div class="form-group">
+      <label>金額</label>
+      <input id="refundAmount" type="number" min="0">
+    </div>
+
+    <div class="form-group">
+      <label>メモ</label>
+      <input id="refundMemo" type="text">
+    </div>
+
+    <button class="btn" id="registerRefundBtn">返金登録</button>
+  </section>
+
+  <hr>
+
+  <!-- 履歴 -->
+  <section>
+    <h2>履歴</h2>
+    <h3>支払い履歴</h3>
+    <table class="table" id="paymentHistoryTable"></table>
+
+    <h3>返金履歴</h3>
+    <table class="table" id="refundHistoryTable"></table>
+  </section>
+
+  <hr>
+
+  <!-- 建替/負債一覧 -->
+  <section>
+    <h2>建替 / 負債一覧</h2>
+    <table class="table" id="balanceTable"></table>
+  </section>
+
+  <hr>
+
+  <!-- 精算ページ -->
+  <section>
+    <h2>精算提案</h2>
+    <div id="settlementList"></div>
+    <button class="btn" id="settlementExecuteBtn">選択した支払いを完了</button>
+  </section>
+</main>
+
+<script src="script.js"></script>
+<script>
+  const GAS_URL = 'YOUR_GAS_WEB_APP_URL'; // デプロイしたGASのURL
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadMembers();
+    loadHistories();
+    loadBalances();
+    loadSettlementSuggestions();
+
+    document.getElementById('addMemberBtn').onclick = addMember;
+    document.getElementById('splitButton').onclick = calcSplit;
+    document.getElementById('registerPaymentBtn').onclick = registerPayment;
+    document.getElementById('registerRefundBtn').onclick = registerRefund;
+    document.getElementById('settlementExecuteBtn').onclick = executeSettlement;
+  });
+
+  async function loadMembers() {
+    const res = await fetch(`${GAS_URL}?action=getMembers`);
+    const data = await res.json();
+    renderMembers(data.members);
+  }
+
+  function renderMembers(members) {
+    const memberList = document.getElementById('memberList');
+    const payerList = document.getElementById('payerList');
+    const receiverList = document.getElementById('receiverList');
+    const refundFrom = document.getElementById('refundFrom');
+    const refundTo = document.getElementById('refundTo');
+
+    memberList.innerHTML = '';
+    payerList.innerHTML = '';
+    receiverList.innerHTML = '';
+    refundFrom.innerHTML = '';
+    refundTo.innerHTML = '';
+
+    members.forEach(m => {
+      // メンバー表示
+      const btn = document.createElement('button');
+      btn.textContent = m.name;
+      btn.className = 'member-btn';
+      memberList.appendChild(btn);
+
+      // 支払者ボタン
+      const payerBtn = document.createElement('button');
+      payerBtn.textContent = m.name;
+      payerBtn.className = 'member-btn';
+      payerBtn.dataset.memberId = m.id;
+      payerBtn.onclick = () => toggleMemberSelect(payerBtn, 'payerAmounts');
+      payerList.appendChild(payerBtn);
+
+      // 受取人ボタン
+      const receiverBtn = document.createElement('button');
+      receiverBtn.textContent = m.name;
+      receiverBtn.className = 'member-btn';
+      receiverBtn.dataset.memberId = m.id;
+      receiverBtn.onclick = () => toggleMemberSelect(receiverBtn, 'receiverAmounts');
+      receiverList.appendChild(receiverBtn);
+
+      // 返金セレクト
+      const optFrom = document.createElement('option');
+      optFrom.value = m.id;
+      optFrom.textContent = m.name;
+      refundFrom.appendChild(optFrom);
+
+      const optTo = document.createElement('option');
+      optTo.value = m.id;
+      optTo.textContent = m.name;
+      refundTo.appendChild(optTo);
+    });
+  }
+
+  function toggleMemberSelect(btn, amountContainerId) {
+    btn.classList.toggle('selected');
+    const container = document.getElementById(amountContainerId);
+    const memberId = btn.dataset.memberId;
+    const existing = container.querySelector(`[data-member-id="${memberId}"]`);
+
+    if (btn.classList.contains('selected')) {
+      if (!existing) {
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        div.dataset.memberId = memberId;
+        div.innerHTML = `
+          <label>${btn.textContent}の金額</label>
+          <input type="number" min="0">
+        `;
+        container.appendChild(div);
+      }
+    } else {
+      if (existing) existing.remove();
+    }
+  }
+
+  async function addMember() {
+    const name = document.getElementById('newMemberName').value.trim();
+    if (!name) return;
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'addMember', name })
+    });
+    document.getElementById('newMemberName').value = '';
+    loadMembers();
+  }
+
+  function calcSplit() {
+    // 簡易版：支払ってもらった人の未入力分を均等割
+    const receiverAmounts = document.querySelectorAll('#receiverAmounts .form-group');
+    let totalSpecified = 0;
+    let unspecified = [];
+
+    receiverAmounts.forEach(group => {
+      const input = group.querySelector('input');
+      const val = Number(input.value || 0);
+      if (val > 0) {
+        totalSpecified += val;
+      } else {
+        unspecified.push(input);
+      }
+    });
+
+    const totalPay = Array.from(document.querySelectorAll('#payerAmounts input'))
+      .reduce((sum, input) => sum + Number(input.value || 0), 0);
+
+    const remain = totalPay - totalSpecified;
+    const per = unspecified.length ? Math.floor(remain / unspecified.length) : 0;
+
+    unspecified.forEach(input => {
+      input.value = per;
+    });
+
+    // 確認表示
+    const confirmArea = document.getElementById('confirmArea');
+    confirmArea.innerHTML = `
+      <p>総支払額: ${totalPay}</p>
+      <p>指定負担額合計: ${totalSpecified}</p>
+      <p>残額: ${remain}</p>
+      <p>未入力者で均等割: ${per}</p>
+    `;
+  }
+
+  async function registerPayment() {
+    const title = document.getElementById('payTitle').value;
+    const date = document.getElementById('payDate').value;
+
+    const payers = Array.from(document.querySelectorAll('#payerAmounts .form-group')).map(g => ({
+      memberId: g.dataset.memberId,
+      amount: Number(g.querySelector('input').value || 0)
+    }));
+
+    const receivers = Array.from(document.querySelectorAll('#receiverAmounts .form-group')).map(g => ({
+      memberId: g.dataset.memberId,
+      amount: Number(g.querySelector('input').value || 0)
+    }));
+
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'registerPayment',
+        title,
+        date,
+        payers,
+        receivers
+      })
+    });
+
+    loadHistories();
+    loadBalances();
+    loadSettlementSuggestions();
+  }
+
+  async function registerRefund() {
+    const from = document.getElementById('refundFrom').value;
+    const to = document.getElementById('refundTo').value;
+    const amount = Number(document.getElementById('refundAmount').value || 0);
+    const memo = document.getElementById('refundMemo').value;
+
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'registerRefund',
+        from,
+        to,
+        amount,
+        memo
+      })
+    });
+
+    loadHistories();
+    loadBalances();
+    loadSettlementSuggestions();
+  }
+
+  async function loadHistories() {
+    const res = await fetch(`${GAS_URL}?action=getHistories`);
+    const data = await res.json();
+
+    const paymentTable = document.getElementById('paymentHistoryTable');
+    const refundTable = document.getElementById('refundHistoryTable');
+
+    paymentTable.innerHTML = '<tr><th>日付</th><th>内容</th><th>詳細</th><th>操作</th></tr>';
+    data.payments.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.date}</td>
+        <td>${p.title}</td>
+        <td>${p.summary}</td>
+        <td>
+          <button class="btn-secondary" onclick="editPayment('${p.id}')">修正</button>
+          <button class="btn-secondary" onclick="deletePayment('${p.id}')">削除</button>
+        </td>
+      `;
+      paymentTable.appendChild(tr);
+    });
+
+    refundTable.innerHTML = '<tr><th>日付</th><th>内容</th><th>操作</th></tr>';
+    data.refunds.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.date}</td>
+        <td>${r.summary}</td>
+        <td>
+          <button class="btn-secondary" onclick="editRefund('${r.id}')">修正</button>
+          <button class="btn-secondary" onclick="deleteRefund('${r.id}')">削除</button>
+        </td>
+      `;
+      refundTable.appendChild(tr);
+    });
+  }
+
+  async function loadBalances() {
+    const res = await fetch(`${GAS_URL}?action=getBalances`);
+    const data = await res.json();
+    const table = document.getElementById('balanceTable');
+    table.innerHTML = '<tr><th>メンバー</th><th>金額</th></tr>';
+    data.balances.forEach(b => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${b.name}</td>
+        <td>${b.amount}</td>
+      `;
+      table.appendChild(tr);
+    });
+  }
+
+  async function loadSettlementSuggestions() {
+    const res = await fetch(`${GAS_URL}?action=getSettlement`);
+    const data = await res.json();
+    const list = document.getElementById('settlementList');
+    list.innerHTML = '';
+    data.suggestions.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'form-group';
+      div.innerHTML = `
+        <label>
+          <input type="checkbox" data-id="${s.id}">
+          ${s.fromName} → ${s.toName} : ${s.amount}円
+        </label>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  async function executeSettlement() {
+    const checked = Array.from(document.querySelectorAll('#settlementList input[type="checkbox"]:checked'))
+      .map(c => c.dataset.id);
+
+    if (!checked.length) return;
+
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'executeSettlement',
+        ids: checked
+      })
+    });
+
+    loadHistories();
+    loadBalances();
+    loadSettlementSuggestions();
+  }
+
+  // 修正・削除は簡易的にIDを渡すだけ（詳細実装はGAS側）
+  async function editPayment(id) { /* モーダル等で編集 → GASへ送信 */ }
+  async function deletePayment(id) {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'deletePayment', id })
+    });
+    loadHistories();
+    loadBalances();
+    loadSettlementSuggestions();
+  }
+
+  async function editRefund(id) { /* 同上 */ }
+  async function deleteRefund(id) {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'deleteRefund', id })
+    });
+    loadHistories();
+    loadBalances();
+    loadSettlementSuggestions();
+  }
+</script>
+</body>
+</html>

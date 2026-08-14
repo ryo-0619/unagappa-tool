@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>棚卸アプリ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="header">
+  <h1>棚卸アプリ</h1>
+</header>
+
+<main class="container">
+  <!-- 商品登録 -->
+  <section>
+    <h2>商品登録</h2>
+
+    <div class="form-group">
+      <label>商品名</label>
+      <input id="itemName" type="text">
+    </div>
+
+    <div class="form-group">
+      <label>数量</label>
+      <input id="itemQty" type="number" min="0">
+    </div>
+
+    <div class="form-group">
+      <label>購入日</label>
+      <input id="itemBuyDate" type="date">
+    </div>
+
+    <div class="form-group">
+      <label>期限</label>
+      <input id="itemExpireDate" type="date">
+    </div>
+
+    <div class="form-group">
+      <label>メモ</label>
+      <textarea id="itemMemo"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>写真</label>
+      <input id="itemPhoto" type="file" accept="image/*" capture="environment">
+    </div>
+
+    <button class="btn" id="registerItemBtn">登録</button>
+  </section>
+
+  <hr>
+
+  <!-- 商品一覧 -->
+  <section>
+    <h2>商品一覧</h2>
+
+    <div class="form-group">
+      <label>検索</label>
+      <input id="searchKeyword" type="text" placeholder="商品名・メモなど">
+    </div>
+
+    <div class="form-group">
+      <label>並び替え</label>
+      <select id="sortKey">
+        <option value="name">商品名</option>
+        <option value="buyDate">購入日</option>
+        <option value="expireDate">期限</option>
+      </select>
+    </div>
+
+    <button class="btn" id="searchBtn">検索・並び替え</button>
+
+    <table class="table" id="itemTable"></table>
+  </section>
+</main>
+
+<script>
+  const GAS_URL = 'YOUR_GAS_WEB_APP_URL';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadItems();
+    document.getElementById('registerItemBtn').onclick = registerItem;
+    document.getElementById('searchBtn').onclick = loadItems;
+  });
+
+  async function registerItem() {
+    const name = document.getElementById('itemName').value;
+    const qty = Number(document.getElementById('itemQty').value || 0);
+    const buyDate = document.getElementById('itemBuyDate').value;
+    const expireDate = document.getElementById('itemExpireDate').value;
+    const memo = document.getElementById('itemMemo').value;
+    const fileInput = document.getElementById('itemPhoto');
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+    formData.append('action', 'registerItem');
+    formData.append('name', name);
+    formData.append('qty', qty);
+    formData.append('buyDate', buyDate);
+    formData.append('expireDate', expireDate);
+    formData.append('memo', memo);
+    if (file) formData.append('photo', file);
+
+    await fetch(GAS_URL, {
+      method: 'POST',
+      body: formData
+    });
+
+    document.getElementById('itemName').value = '';
+    document.getElementById('itemQty').value = '';
+    document.getElementById('itemBuyDate').value = '';
+    document.getElementById('itemExpireDate').value = '';
+    document.getElementById('itemMemo').value = '';
+    fileInput.value = '';
+
+    loadItems();
+  }
+
+  async function loadItems() {
+    const keyword = document.getElementById('searchKeyword').value;
+    const sortKey = document.getElementById('sortKey').value;
+
+    const res = await fetch(`${GAS_URL}?action=getItems&keyword=${encodeURIComponent(keyword)}&sort=${sortKey}`);
+    const data = await res.json();
+
+    const table = document.getElementById('itemTable');
+    table.innerHTML = '<tr><th>商品名</th><th>数量</th><th>購入日</th><th>期限</th><th>メモ</th><th>写真</th></tr>';
+
+    data.items.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.name}</td>
+        <td>${item.qty}</td>
+        <td>${item.buyDate}</td>
+        <td>${item.expireDate}</td>
+        <td>${item.memo}</td>
+        <td>${item.photoUrl ? `<img src="${item.photoUrl}" alt="" style="max-width:80px;">` : ''}</td>
+      `;
+      table.appendChild(tr);
+    });
+  }
+</script>
+</body>
+</html>
