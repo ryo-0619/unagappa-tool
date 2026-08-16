@@ -220,7 +220,8 @@
     if (!name) return;
     await fetch(GAS_URL, {
       method: 'POST',
-      body: JSON.stringify({ action: 'addMember', name })
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `action=addMember&name=${encodeURIComponent(name)}`
     });
     document.getElementById('newMemberName').value = '';
     loadMembers();
