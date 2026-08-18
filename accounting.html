@@ -440,7 +440,10 @@
   }
 
   async function loadHistories() {
-    const res = await fetch(`${GAS_URL}?action=getHistories`);
+    const res = await fetch(`${GAS_URL}?action=getHistories`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
     const data = await res.json();
 
     const paymentTable = document.getElementById('paymentHistoryTable');
@@ -475,9 +478,11 @@
       refundTable.appendChild(tr);
     });
   }
-
   async function loadBalances() {
-    const res = await fetch(`${GAS_URL}?action=getBalances`);
+    const res = await fetch(`${GAS_URL}?action=getBalances`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
     const data = await res.json();
     const table = document.getElementById('balanceTable');
     table.innerHTML = '<tr><th>メンバー</th><th>金額</th></tr>';
@@ -490,9 +495,11 @@
       table.appendChild(tr);
     });
   }
-
   async function loadSettlementSuggestions() {
-    const res = await fetch(`${GAS_URL}?action=getSettlement`);
+    const res = await fetch(`${GAS_URL}?action=getSettlement`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
     const data = await res.json();
     const list = document.getElementById('settlementList');
     list.innerHTML = '';
