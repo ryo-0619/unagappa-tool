@@ -299,6 +299,7 @@
 
     await fetch(GAS_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'registerPayment',
         title,
@@ -321,6 +322,7 @@
 
     await fetch(GAS_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'registerRefund',
         from,
@@ -413,6 +415,7 @@
 
     await fetch(GAS_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'executeSettlement',
         ids: checked
@@ -429,6 +432,7 @@
   async function deletePayment(id) {
     await fetch(GAS_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'deletePayment', id })
     });
     loadHistories();
@@ -440,6 +444,7 @@
   async function deleteRefund(id) {
     await fetch(GAS_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'deleteRefund', id })
     });
     loadHistories();
