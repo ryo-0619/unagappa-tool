@@ -23,7 +23,7 @@
   <!-- タブ1: メンバー管理 -->
   <section id="members-tab" class="tab-content active">
     <h2>メンバー</h2>
-    <div id="memberList" class="member-list" style="border: none;"></div>
+    <div id="memberList" class="member-list"></div>
 
     <div class="form-group" style="margin-top: 20px;">
       <label for="newMemberName">メンバー追加</label>
@@ -191,7 +191,6 @@
       btn.textContent = m.name;
       btn.className = 'member-btn';
       btn.dataset.memberId = m.id;
-      btn.style.border = '2px solid #ddd';
       btn.onclick = () => {
         if (isEditMode) {
           toggleMemberSelection(btn, m.id);
@@ -239,7 +238,7 @@
       editBtn.style.display = 'none';
       deleteBtn.style.display = 'inline-block';
       cancelBtn.style.display = 'inline-block';
-      memberList.style.border = '2px solid #2196F3';
+      memberList.style.border = '1px solid #2196F3';
       memberList.style.padding = '10px';
       memberList.style.borderRadius = '4px';
       selectedMemberIds.clear();
