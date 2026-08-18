@@ -30,17 +30,16 @@
       <input id="newMemberName" type="text" placeholder="名前">
     </div>
     <button class="btn" id="addMemberBtn">追加</button>
+    <button class="btn" id="editMemberBtn" style="background-color: #2196F3; margin-left: 10px;">編集</button>
 
     <!-- 編集モード -->
     <div id="editModeContainer" style="display:none; margin-top: 20px; padding: 20px; border: 2px solid #ff9800; border-radius: 8px;">
       <h3>メンバー削除</h3>
       <p>削除するメンバーを選択してください：</p>
-      <div id="editMemberList" class="member-list"></div>
+      <div id="editMemberList" class="member-list" style="display: block; flex-direction: column; align-items: flex-start;"></div>
       <button class="btn" id="deleteSelectedBtn" style="background-color: #f44336; margin-top: 10px;">選択したメンバーを削除</button>
-      <button class="btn" id="cancelEditBtn" style="background-color: #999; margin-top: 10px;">キャンセル</button>
+      <button class="btn" id="cancelEditBtn" style="background-color: #999; margin-top: 10px; margin-left: 10px;">キャンセル</button>
     </div>
-
-    <button class="btn" id="editMemberBtn" style="background-color: #2196F3; margin-top: 10px;">編集</button>
   </section>
 
   <!-- タブ2: 支払い登録 -->
@@ -132,14 +131,12 @@
 
 <script src="script.js"></script>
 <script>
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycby4XMvkk6gTDwfPVmSnugmpOtOxkXkEH8gqeZE5hnv5q7vJ3VjzbeKu58tJpoz8Y7Hf/exec'; // デプロイしたGASのURL
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycby4XMvkk6gTDwfPVmSnugmpOtOxkXkEH8gqeZE5hnv5q7vJ3VjzbeKu58tJpoz8Y7Hf/exec';
 
   let isEditMode = false;
 
   document.addEventListener('DOMContentLoaded', () => {
-    // タブ切り替え機能
     initTabs();
-
     loadMembers();
     loadHistories();
     loadBalances();
@@ -155,23 +152,19 @@
     document.getElementById('settlementExecuteBtn').onclick = executeSettlement;
   });
 
-  // タブ切り替え機能
   function initTabs() {
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
 
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        // 全てのタブボタンと内容を非アクティブにする
         tabBtns.forEach(b => b.classList.remove('active'));
         tabContents.forEach(content => content.classList.remove('active'));
 
-        // クリックされたボタンと対応するコンテンツをアクティブにする
         btn.classList.add('active');
         const tabName = btn.dataset.tab;
         document.getElementById(tabName).classList.add('active');
 
-        // 他のタブに移動した場合、編集モードをキャンセル
         if (isEditMode) {
           cancelEditMode();
         }
@@ -199,13 +192,11 @@
     refundTo.innerHTML = '';
 
     members.forEach(m => {
-      // メンバー表示
       const btn = document.createElement('button');
       btn.textContent = m.name;
       btn.className = 'member-btn';
       memberList.appendChild(btn);
 
-      // 支払者ボタン
       const payerBtn = document.createElement('button');
       payerBtn.textContent = m.name;
       payerBtn.className = 'member-btn';
@@ -213,7 +204,6 @@
       payerBtn.onclick = () => toggleMemberSelect(payerBtn, 'payerAmounts');
       payerList.appendChild(payerBtn);
 
-      // 受取人ボタン
       const receiverBtn = document.createElement('button');
       receiverBtn.textContent = m.name;
       receiverBtn.className = 'member-btn';
@@ -221,7 +211,6 @@
       receiverBtn.onclick = () => toggleMemberSelect(receiverBtn, 'receiverAmounts');
       receiverList.appendChild(receiverBtn);
 
-      // 返金セレクト
       const optFrom = document.createElement('option');
       optFrom.value = m.id;
       optFrom.textContent = m.name;
@@ -233,7 +222,6 @@
       refundTo.appendChild(optTo);
     });
 
-    // 編集モード用のメンバーリストも更新
     renderEditMemberList(members);
   }
 
@@ -243,8 +231,7 @@
 
     members.forEach(m => {
       const label = document.createElement('label');
-      label.style.display = 'block';
-      label.style.margin = '8px 0';
+      label.style.cssText = 'display: block; margin: 8px 0;';
       label.innerHTML = `
         <input type="checkbox" value="${m.id}" class="member-checkbox">
         ${m.name}
@@ -279,7 +266,6 @@
     editBtn.textContent = '編集';
     editBtn.style.backgroundColor = '#2196F3';
 
-    // チェックボックスのチェックを外す
     checkboxes.forEach(cb => cb.checked = false);
   }
 
@@ -349,7 +335,6 @@
   }
 
   function calcSplit() {
-    // 簡易版：支払ってもらった人の未入力分を均等割
     const receiverAmounts = document.querySelectorAll('#receiverAmounts .form-group');
     let totalSpecified = 0;
     let unspecified = [];
@@ -374,7 +359,6 @@
       input.value = per;
     });
 
-    // 確認表示
     const confirmArea = document.getElementById('confirmArea');
     confirmArea.innerHTML = `
       <p>総支払額: ${totalPay}</p>
@@ -528,8 +512,7 @@
     loadSettlementSuggestions();
   }
 
-  // 修正・削除は簡易的にIDを渡すだけ（詳細実装はGAS側）
-  async function editPayment(id) { /* モーダル等で編集 → GASへ送信 */ }
+  async function editPayment(id) { }
   async function deletePayment(id) {
     await fetch(GAS_URL, {
       method: 'POST',
@@ -541,7 +524,7 @@
     loadSettlementSuggestions();
   }
 
-  async function editRefund(id) { /* 同上 */ }
+  async function editRefund(id) { }
   async function deleteRefund(id) {
     await fetch(GAS_URL, {
       method: 'POST',
