@@ -50,14 +50,14 @@
     </div>
 
     <div class="form-group">
-      <label>支払者（複数選択可）</label>
+      <label>立替者（複数選択可）</label>
       <div id="payerList" class="member-list"></div>
     </div>
 
     <div id="payerAmounts"></div>
 
     <div class="form-group">
-      <label>支払ってもらった人（複数選択可）</label>
+      <label>債務者（複数選択可）</label>
       <div id="receiverList" class="member-list"></div>
     </div>
 
@@ -76,12 +76,12 @@
     <h2>返金登録</h2>
 
     <div class="form-group">
-      <label>支払う人</label>
+      <label>支払者</label>
       <select id="refundFrom"></select>
     </div>
 
     <div class="form-group">
-      <label>受け取る人</label>
+      <label>受取者</label>
       <select id="refundTo"></select>
     </div>
 
@@ -198,7 +198,7 @@
       };
       memberList.appendChild(btn);
 
-      // 支払者ボタン
+      // 立替者ボタン
       const payerBtn = document.createElement('button');
       payerBtn.textContent = m.name;
       payerBtn.className = 'member-btn';
@@ -206,7 +206,7 @@
       payerBtn.onclick = () => toggleMemberSelect(payerBtn, 'payerAmounts');
       payerList.appendChild(payerBtn);
 
-      // 受取人ボタン
+      // 債務者ボタン
       const receiverBtn = document.createElement('button');
       receiverBtn.textContent = m.name;
       receiverBtn.className = 'member-btn';
