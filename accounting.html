@@ -167,7 +167,10 @@
   }
 
   async function loadMembers() {
-    const res = await fetch(`${GAS_URL}?action=getMembers`);
+    const res = await fetch(`${GAS_URL}?action=getMembers`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
     const data = await res.json();
     renderMembers(data.members);
   }
