@@ -30,6 +30,17 @@
       <input id="newMemberName" type="text" placeholder="名前">
     </div>
     <button class="btn" id="addMemberBtn">追加</button>
+
+    <!-- 編集モード -->
+    <div id="editModeContainer" style="display:none; margin-top: 20px; padding: 20px; border: 2px solid #ff9800; border-radius: 8px;">
+      <h3>メンバー削除</h3>
+      <p>削除するメンバーを選択してください：</p>
+      <div id="editMemberList" class="member-list"></div>
+      <button class="btn" id="deleteSelectedBtn" style="background-color: #f44336; margin-top: 10px;">選択したメンバーを削除</button>
+      <button class="btn" id="cancelEditBtn" style="background-color: #999; margin-top: 10px;">キャンセル</button>
+    </div>
+
+    <button class="btn" id="editMemberBtn" style="background-color: #2196F3; margin-top: 10px;">編集</button>
   </section>
 
   <!-- タブ2: 支払い登録 -->
@@ -123,6 +134,8 @@
 <script>
   const GAS_URL = 'https://script.google.com/macros/s/AKfycby4XMvkk6gTDwfPVmSnugmpOtOxkXkEH8gqeZE5hnv5q7vJ3VjzbeKu58tJpoz8Y7Hf/exec'; // デプロイしたGASのURL
 
+  let isEditMode = false;
+
   document.addEventListener('DOMContentLoaded', () => {
     // タブ切り替え機能
     initTabs();
@@ -133,6 +146,9 @@
     loadSettlementSuggestions();
 
     document.getElementById('addMemberBtn').onclick = addMember;
+    document.getElementById('editMemberBtn').onclick = toggleEditMode;
+    document.getElementById('cancelEditBtn').onclick = cancelEditMode;
+    document.getElementById('deleteSelectedBtn').onclick = deleteSelectedMembers;
     document.getElementById('splitButton').onclick = calcSplit;
     document.getElementById('registerPaymentBtn').onclick = registerPayment;
     document.getElementById('registerRefundBtn').onclick = registerRefund;
@@ -154,6 +170,11 @@
         btn.classList.add('active');
         const tabName = btn.dataset.tab;
         document.getElementById(tabName).classList.add('active');
+
+        // 他のタブに移動した場合、編集モードをキャンセル
+        if (isEditMode) {
+          cancelEditMode();
+        }
       });
     });
   }
@@ -211,6 +232,86 @@
       optTo.textContent = m.name;
       refundTo.appendChild(optTo);
     });
+
+    // 編集モード用のメンバーリストも更新
+    renderEditMemberList(members);
+  }
+
+  function renderEditMemberList(members) {
+    const editMemberList = document.getElementById('editMemberList');
+    editMemberList.innerHTML = '';
+
+    members.forEach(m => {
+      const label = document.createElement('label');
+      label.style.display = 'block';
+      label.style.margin = '8px 0';
+      label.innerHTML = `
+        <input type="checkbox" value="${m.id}" class="member-checkbox">
+        ${m.name}
+      `;
+      editMemberList.appendChild(label);
+    });
+  }
+
+  function toggleEditMode() {
+    isEditMode = !isEditMode;
+    const editContainer = document.getElementById('editModeContainer');
+    const editBtn = document.getElementById('editMemberBtn');
+
+    if (isEditMode) {
+      editContainer.style.display = 'block';
+      editBtn.textContent = '編集を終了';
+      editBtn.style.backgroundColor = '#4CAF50';
+    } else {
+      editContainer.style.display = 'none';
+      editBtn.textContent = '編集';
+      editBtn.style.backgroundColor = '#2196F3';
+    }
+  }
+
+  function cancelEditMode() {
+    isEditMode = false;
+    const editContainer = document.getElementById('editModeContainer');
+    const editBtn = document.getElementById('editMemberBtn');
+    const checkboxes = document.querySelectorAll('.member-checkbox');
+
+    editContainer.style.display = 'none';
+    editBtn.textContent = '編集';
+    editBtn.style.backgroundColor = '#2196F3';
+
+    // チェックボックスのチェックを外す
+    checkboxes.forEach(cb => cb.checked = false);
+  }
+
+  async function deleteSelectedMembers() {
+    const checkboxes = document.querySelectorAll('.member-checkbox:checked');
+    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+
+    if (selectedIds.length === 0) {
+      alert('削除するメンバーを選択してください');
+      return;
+    }
+
+    if (!confirm(`${selectedIds.length}人のメンバーを削除しますか？`)) {
+      return;
+    }
+
+    for (const id of selectedIds) {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'deleteMember',
+          id: id
+        })
+      });
+    }
+
+    cancelEditMode();
+    loadMembers();
+    loadHistories();
+    loadBalances();
+    loadSettlementSuggestions();
   }
 
   function toggleMemberSelect(btn, amountContainerId) {
