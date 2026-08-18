@@ -20,111 +20,8 @@
 </header>
 
 <main class="container">
-  <!-- タブ1: メンバー管理 -->
-  <section id="members-tab" class="tab-content active">
-    <h2>メンバー</h2>
-    <div id="memberList" class="member-list"></div>
-
-    <div class="form-group" style="margin-top: 20px;">
-      <label for="newMemberName">メンバー追加</label>
-      <input id="newMemberName" type="text" placeholder="名前">
-    </div>
-    <button class="btn" id="addMemberBtn">追加</button>
-    <button class="btn" id="editMemberBtn" style="background-color: #2196F3; margin-left: 10px;">編集</button>
-    <button class="btn" id="deleteSelectedBtn" style="background-color: #f44336; margin-left: 10px; display:none;">削除</button>
-    <button class="btn" id="cancelEditBtn" style="background-color: #999; margin-left: 10px; display:none;">キャンセル</button>
-  </section>
-
-  <!-- タブ2: 支払い登録 -->
-  <section id="payment-tab" class="tab-content">
-    <h2>支払い登録</h2>
-
-    <div class="form-group">
-      <label>支払い内容</label>
-      <input id="payTitle" type="text">
-    </div>
-
-    <div class="form-group">
-      <label>支払日</label>
-      <input id="payDate" type="date">
-    </div>
-
-    <div class="form-group">
-      <label>立替者（複数選択可）</label>
-      <div id="payerList" class="member-list"></div>
-    </div>
-
-    <div id="payerAmounts"></div>
-
-    <div class="form-group">
-      <label>債務者（複数選択可）</label>
-      <div id="receiverList" class="member-list"></div>
-    </div>
-
-    <div id="receiverAmounts"></div>
-
-    <button class="btn" id="splitButton">割り勘計算</button>
-
-    <h3>確認</h3>
-    <div id="confirmArea"></div>
-
-    <button class="btn" id="registerPaymentBtn">支払い登録</button>
-  </section>
-
-  <!-- タブ3: 返金登録 -->
-  <section id="refund-tab" class="tab-content">
-    <h2>返金登録</h2>
-
-    <div class="form-group">
-      <label>支払者</label>
-      <select id="refundFrom"></select>
-    </div>
-
-    <div class="form-group">
-      <label>受取者</label>
-      <select id="refundTo"></select>
-    </div>
-
-    <div class="form-group">
-      <label>金額</label>
-      <input id="refundAmount" type="number" min="0">
-    </div>
-
-    <div class="form-group">
-      <label>メモ</label>
-      <input id="refundMemo" type="text">
-    </div>
-
-    <button class="btn" id="registerRefundBtn">返金登録</button>
-  </section>
-
-  <!-- タブ4: 履歴 -->
-  <section id="history-tab" class="tab-content">
-    <h2>履歴</h2>
-    <h3>支払い履歴</h3>
-    <table class="table" id="paymentHistoryTable"></table>
-
-    <h3>返金履歴</h3>
-    <table class="table" id="refundHistoryTable"></table>
-  </section>
-
-  <!-- タブ5: 建替/負債一覧 -->
-  <section id="balance-tab" class="tab-content">
-    <h2>建替 / 負債一覧</h2>
-    <table class="table" id="balanceTable"></table>
-  </section>
-
-  <!-- タブ6: 精算ページ -->
-  <section id="settlement-tab" class="tab-content">
-    <h2>精算提案</h2>
-    <div id="settlementList"></div>
-    <button class="btn" id="settlementExecuteBtn">選択した支払いを完了</button>
-  </section>
-</main>
-
-<script src="script.js"></script>
+<script src="gas_code.js"></script>
 <script>
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycby4XMvkk6gTDwfPVmSnugmpOtOxkXkEH8gqeZE5hnv5q7vJ3VjzbeKu58tJpoz8Y7Hf/exec';
 
   let isEditMode = false;
   let selectedMemberIds = new Set();
@@ -166,12 +63,11 @@
     });
   }
 
+  // =========================
+  // メンバー読み込み
+  // =========================
   async function loadMembers() {
-    const res = await fetch(`${GAS_URL}?action=getMembers`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
+    const data = await apiGetMembers();
     renderMembers(data.members);
   }
 
@@ -230,63 +126,22 @@
     });
   }
 
-  function toggleEditMode() {
-    isEditMode = !isEditMode;
-    const editBtn = document.getElementById('editMemberBtn');
-    const deleteBtn = document.getElementById('deleteSelectedBtn');
-    const cancelBtn = document.getElementById('cancelEditBtn');
-    const memberList = document.getElementById('memberList');
+  // =========================
+  // メンバー追加
+  // =========================
+  async function addMember() {
+    const name = document.getElementById('newMemberName').value.trim();
+    if (!name) return;
 
-    if (isEditMode) {
-      editBtn.style.display = 'none';
-      deleteBtn.style.display = 'inline-block';
-      cancelBtn.style.display = 'inline-block';
-      memberList.style.border = '1px solid #2196F3';
-      memberList.style.padding = '10px';
-      memberList.style.borderRadius = '4px';
-      selectedMemberIds.clear();
-    } else {
-      cancelEditMode();
-    }
+    await apiAddMember(name);
+
+    document.getElementById('newMemberName').value = '';
+    loadMembers();
   }
 
-  function cancelEditMode() {
-    isEditMode = false;
-    const editBtn = document.getElementById('editMemberBtn');
-    const deleteBtn = document.getElementById('deleteSelectedBtn');
-    const cancelBtn = document.getElementById('cancelEditBtn');
-    const memberList = document.getElementById('memberList');
-    const memberBtns = document.querySelectorAll('#memberList .member-btn');
-
-    editBtn.style.display = 'inline-block';
-    deleteBtn.style.display = 'none';
-    cancelBtn.style.display = 'none';
-    memberList.style.border = 'none';
-    memberList.style.padding = '';
-    
-    memberBtns.forEach(btn => {
-      btn.style.backgroundColor = '#fff';
-      btn.style.color = '#4a90e2';
-      btn.style.borderColor = '#4a90e2';
-    });
-
-    selectedMemberIds.clear();
-  }
-
-  function toggleMemberSelection(btn, memberId) {
-    if (selectedMemberIds.has(memberId)) {
-      selectedMemberIds.delete(memberId);
-      btn.style.backgroundColor = '#fff';
-      btn.style.color = '#4a90e2';
-      btn.style.borderColor = '#4a90e2';
-    } else {
-      selectedMemberIds.add(memberId);
-      btn.style.backgroundColor = '#f44336';
-      btn.style.color = '#fff';
-      btn.style.borderColor = '#f44336';
-    }
-  }
-
+  // =========================
+  // メンバー削除
+  // =========================
   async function deleteSelectedMembers() {
     if (selectedMemberIds.size === 0) {
       alert('削除するメンバーを選択してください');
@@ -299,11 +154,7 @@
 
     try {
       for (const id of selectedMemberIds) {
-
-        const result = await res.json();
-        if (!res.ok) {
-          throw new Error(result.error || '削除に失敗しました');
-        }
+        await apiDeleteMember(id);
       }
 
       alert('メンバーを削除しました');
@@ -312,79 +163,15 @@
       loadHistories();
       loadBalances();
       loadSettlementSuggestions();
+
     } catch (error) {
       alert('削除エラー: ' + error.message);
     }
   }
 
-  function toggleMemberSelect(btn, amountContainerId) {
-    btn.classList.toggle('selected');
-    const container = document.getElementById(amountContainerId);
-    const memberId = btn.dataset.memberId;
-    const existing = container.querySelector(`[data-member-id="${memberId}"]`);
-
-    if (btn.classList.contains('selected')) {
-      if (!existing) {
-        const div = document.createElement('div');
-        div.className = 'form-group';
-        div.dataset.memberId = memberId;
-        div.innerHTML = `
-          <label>${btn.textContent}の金額</label>
-          <input type="number" min="0">
-        `;
-        container.appendChild(div);
-      }
-    } else {
-      if (existing) existing.remove();
-    }
-  }
-
-  async function addMember() {
-    const name = document.getElementById('newMemberName').value.trim();
-    if (!name) return;
-    await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `action=addMember&name=${encodeURIComponent(name)}`
-    });
-    document.getElementById('newMemberName').value = '';
-    loadMembers();
-  }
-
-  function calcSplit() {
-    const receiverAmounts = document.querySelectorAll('#receiverAmounts .form-group');
-    let totalSpecified = 0;
-    let unspecified = [];
-
-    receiverAmounts.forEach(group => {
-      const input = group.querySelector('input');
-      const val = Number(input.value || 0);
-      if (val > 0) {
-        totalSpecified += val;
-      } else {
-        unspecified.push(input);
-      }
-    });
-
-    const totalPay = Array.from(document.querySelectorAll('#payerAmounts input'))
-      .reduce((sum, input) => sum + Number(input.value || 0), 0);
-
-    const remain = totalPay - totalSpecified;
-    const per = unspecified.length ? Math.floor(remain / unspecified.length) : 0;
-
-    unspecified.forEach(input => {
-      input.value = per;
-    });
-
-    const confirmArea = document.getElementById('confirmArea');
-    confirmArea.innerHTML = `
-      <p>総支払額: ${totalPay}</p>
-      <p>指定負担額合計: ${totalSpecified}</p>
-      <p>残額: ${remain}</p>
-      <p>未入力者で均等割: ${per}</p>
-    `;
-  }
-
+  // =========================
+  // 支払い登録
+  // =========================
   async function registerPayment() {
     const title = document.getElementById('payTitle').value;
     const date = document.getElementById('payDate').value;
@@ -399,16 +186,11 @@
       amount: Number(g.querySelector('input').value || 0)
     }));
 
-    await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'registerPayment',
-        title,
-        date,
-        payers,
-        receivers
-      })
+    await apiRegisterPayment({
+      title,
+      date,
+      payers,
+      receivers
     });
 
     loadHistories();
@@ -416,22 +198,20 @@
     loadSettlementSuggestions();
   }
 
+  // =========================
+  // 返金登録
+  // =========================
   async function registerRefund() {
     const from = document.getElementById('refundFrom').value;
     const to = document.getElementById('refundTo').value;
     const amount = Number(document.getElementById('refundAmount').value || 0);
     const memo = document.getElementById('refundMemo').value;
 
-    await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'registerRefund',
-        from,
-        to,
-        amount,
-        memo
-      })
+    await apiRegisterRefund({
+      from,
+      to,
+      amount,
+      memo
     });
 
     loadHistories();
@@ -439,12 +219,11 @@
     loadSettlementSuggestions();
   }
 
+  // =========================
+  // 履歴読み込み
+  // =========================
   async function loadHistories() {
-    const res = await fetch(`${GAS_URL}?action=getHistories`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
+    const data = await apiGetHistories();
 
     const paymentTable = document.getElementById('paymentHistoryTable');
     const refundTable = document.getElementById('refundHistoryTable');
@@ -478,12 +257,12 @@
       refundTable.appendChild(tr);
     });
   }
+
+  // =========================
+  // 残高読み込み
+  // =========================
   async function loadBalances() {
-    const res = await fetch(`${GAS_URL}?action=getBalances`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
+    const data = await apiGetBalances();
     const table = document.getElementById('balanceTable');
     table.innerHTML = '<tr><th>メンバー</th><th>金額</th></tr>';
     data.balances.forEach(b => {
@@ -495,12 +274,12 @@
       table.appendChild(tr);
     });
   }
+
+  // =========================
+  // 精算案読み込み
+  // =========================
   async function loadSettlementSuggestions() {
-    const res = await fetch(`${GAS_URL}?action=getSettlement`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
+    const data = await apiGetSettlement();
     const list = document.getElementById('settlementList');
     list.innerHTML = '';
     data.suggestions.forEach(s => {
@@ -516,49 +295,54 @@
     });
   }
 
+  // =========================
+  // 精算実行
+  // =========================
   async function executeSettlement() {
     const checked = Array.from(document.querySelectorAll('#settlementList input[type="checkbox"]:checked'))
       .map(c => c.dataset.id);
 
     if (!checked.length) return;
 
-    await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'executeSettlement',
-        ids: checked
-      })
-    });
+    await apiExecuteSettlement(checked);
 
     loadHistories();
     loadBalances();
     loadSettlementSuggestions();
   }
+<script>
 
-  async function editPayment(id) { }
+  // =========================
+  // 支払い削除
+  // =========================
   async function deletePayment(id) {
-    await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'deletePayment', id })
-    });
+    await apiDeletePayment(id);
     loadHistories();
     loadBalances();
     loadSettlementSuggestions();
   }
 
-  async function editRefund(id) { }
+  // =========================
+  // 返金削除
+  // =========================
   async function deleteRefund(id) {
-    await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'deleteRefund', id })
-    });
+    await apiDeleteRefund(id);
     loadHistories();
     loadBalances();
     loadSettlementSuggestions();
   }
+
+  // =========================
+  // 編集機能（未実装のまま）
+  // =========================
+  async function editPayment(id) {
+    alert("支払いの編集はまだ未実装です");
+  }
+
+  async function editRefund(id) {
+    alert("返金の編集はまだ未実装です");
+  }
+
 </script>
 </body>
 </html>
