@@ -9,11 +9,19 @@
 <body>
 <header class="header">
   <h1>会計アプリ</h1>
+  <div class="tab-menu">
+    <button class="tab-btn active" data-tab="members-tab">メンバー</button>
+    <button class="tab-btn" data-tab="payment-tab">支払い</button>
+    <button class="tab-btn" data-tab="refund-tab">返金</button>
+    <button class="tab-btn" data-tab="history-tab">履歴</button>
+    <button class="tab-btn" data-tab="balance-tab">建替/負債</button>
+    <button class="tab-btn" data-tab="settlement-tab">精算</button>
+  </div>
 </header>
 
 <main class="container">
-  <!-- メンバー一覧・追加 -->
-  <section>
+  <!-- タブ1: メンバー管理 -->
+  <section id="members-tab" class="tab-content active">
     <h2>メンバー</h2>
     <div id="memberList" class="member-list"></div>
 
@@ -24,10 +32,8 @@
     <button class="btn" id="addMemberBtn">追加</button>
   </section>
 
-  <hr>
-
-  <!-- 支払い登録 -->
-  <section>
+  <!-- タブ2: 支払い登録 -->
+  <section id="payment-tab" class="tab-content">
     <h2>支払い登録</h2>
 
     <div class="form-group">
@@ -62,10 +68,8 @@
     <button class="btn" id="registerPaymentBtn">支払い登録</button>
   </section>
 
-  <hr>
-
-  <!-- 返金ページ -->
-  <section>
+  <!-- タブ3: 返金登録 -->
+  <section id="refund-tab" class="tab-content">
     <h2>返金登録</h2>
 
     <div class="form-group">
@@ -91,10 +95,8 @@
     <button class="btn" id="registerRefundBtn">返金登録</button>
   </section>
 
-  <hr>
-
-  <!-- 履歴 -->
-  <section>
+  <!-- タブ4: 履歴 -->
+  <section id="history-tab" class="tab-content">
     <h2>履歴</h2>
     <h3>支払い履歴</h3>
     <table class="table" id="paymentHistoryTable"></table>
@@ -103,18 +105,14 @@
     <table class="table" id="refundHistoryTable"></table>
   </section>
 
-  <hr>
-
-  <!-- 建替/負債一覧 -->
-  <section>
+  <!-- タブ5: 建替/負債一覧 -->
+  <section id="balance-tab" class="tab-content">
     <h2>建替 / 負債一覧</h2>
     <table class="table" id="balanceTable"></table>
   </section>
 
-  <hr>
-
-  <!-- 精算ページ -->
-  <section>
+  <!-- タブ6: 精算ページ -->
+  <section id="settlement-tab" class="tab-content">
     <h2>精算提案</h2>
     <div id="settlementList"></div>
     <button class="btn" id="settlementExecuteBtn">選択した支払いを完了</button>
@@ -126,6 +124,9 @@
   const GAS_URL = 'https://script.google.com/macros/s/AKfycby4XMvkk6gTDwfPVmSnugmpOtOxkXkEH8gqeZE5hnv5q7vJ3VjzbeKu58tJpoz8Y7Hf/exec'; // デプロイしたGASのURL
 
   document.addEventListener('DOMContentLoaded', () => {
+    // タブ切り替え機能
+    initTabs();
+
     loadMembers();
     loadHistories();
     loadBalances();
@@ -137,6 +138,25 @@
     document.getElementById('registerRefundBtn').onclick = registerRefund;
     document.getElementById('settlementExecuteBtn').onclick = executeSettlement;
   });
+
+  // タブ切り替え機能
+  function initTabs() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // 全てのタブボタンと内容を非アクティブにする
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+
+        // クリックされたボタンと対応するコンテンツをアクティブにする
+        btn.classList.add('active');
+        const tabName = btn.dataset.tab;
+        document.getElementById(tabName).classList.add('active');
+      });
+    });
+  }
 
   async function loadMembers() {
     const res = await fetch(`${GAS_URL}?action=getMembers`);
