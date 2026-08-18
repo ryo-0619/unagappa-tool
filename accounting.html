@@ -23,23 +23,16 @@
   <!-- タブ1: メンバー管理 -->
   <section id="members-tab" class="tab-content active">
     <h2>メンバー</h2>
-    <div id="memberList" class="member-list"></div>
+    <div id="memberList" class="member-list" style="border: none;"></div>
 
-    <div class="form-group">
+    <div class="form-group" style="margin-top: 20px;">
       <label for="newMemberName">メンバー追加</label>
       <input id="newMemberName" type="text" placeholder="名前">
     </div>
     <button class="btn" id="addMemberBtn">追加</button>
     <button class="btn" id="editMemberBtn" style="background-color: #2196F3; margin-left: 10px;">編集</button>
-
-    <!-- 編集モード -->
-    <div id="editModeContainer" style="display:none; margin-top: 20px; padding: 20px; border: 2px solid #ff9800; border-radius: 8px;">
-      <h3>メンバー削除</h3>
-      <p>削除するメンバーを選択してください：</p>
-      <div id="editMemberList" class="member-list" style="display: block; flex-direction: column; align-items: flex-start;"></div>
-      <button class="btn" id="deleteSelectedBtn" style="background-color: #f44336; margin-top: 10px;">選択したメンバーを削除</button>
-      <button class="btn" id="cancelEditBtn" style="background-color: #999; margin-top: 10px; margin-left: 10px;">キャンセル</button>
-    </div>
+    <button class="btn" id="deleteSelectedBtn" style="background-color: #f44336; margin-left: 10px; display:none;">削除</button>
+    <button class="btn" id="cancelEditBtn" style="background-color: #999; margin-left: 10px; display:none;">キャンセル</button>
   </section>
 
   <!-- タブ2: 支払い登録 -->
@@ -134,6 +127,7 @@
   const GAS_URL = 'https://script.google.com/macros/s/AKfycby4XMvkk6gTDwfPVmSnugmpOtOxkXkEH8gqeZE5hnv5q7vJ3VjzbeKu58tJpoz8Y7Hf/exec';
 
   let isEditMode = false;
+  let selectedMemberIds = new Set();
 
   document.addEventListener('DOMContentLoaded', () => {
     initTabs();
@@ -192,11 +186,20 @@
     refundTo.innerHTML = '';
 
     members.forEach(m => {
+      // メンバー一覧表示（編集モード用）
       const btn = document.createElement('button');
       btn.textContent = m.name;
       btn.className = 'member-btn';
+      btn.dataset.memberId = m.id;
+      btn.style.border = '2px solid #ddd';
+      btn.onclick = () => {
+        if (isEditMode) {
+          toggleMemberSelection(btn, m.id);
+        }
+      };
       memberList.appendChild(btn);
 
+      // 支払者ボタン
       const payerBtn = document.createElement('button');
       payerBtn.textContent = m.name;
       payerBtn.className = 'member-btn';
@@ -204,6 +207,7 @@
       payerBtn.onclick = () => toggleMemberSelect(payerBtn, 'payerAmounts');
       payerList.appendChild(payerBtn);
 
+      // 受取人ボタン
       const receiverBtn = document.createElement('button');
       receiverBtn.textContent = m.name;
       receiverBtn.className = 'member-btn';
@@ -211,6 +215,7 @@
       receiverBtn.onclick = () => toggleMemberSelect(receiverBtn, 'receiverAmounts');
       receiverList.appendChild(receiverBtn);
 
+      // 返金セレクト
       const optFrom = document.createElement('option');
       optFrom.value = m.id;
       optFrom.textContent = m.name;
@@ -221,83 +226,101 @@
       optTo.textContent = m.name;
       refundTo.appendChild(optTo);
     });
-
-    renderEditMemberList(members);
-  }
-
-  function renderEditMemberList(members) {
-    const editMemberList = document.getElementById('editMemberList');
-    editMemberList.innerHTML = '';
-
-    members.forEach(m => {
-      const label = document.createElement('label');
-      label.style.cssText = 'display: block; margin: 8px 0;';
-      label.innerHTML = `
-        <input type="checkbox" value="${m.id}" class="member-checkbox">
-        ${m.name}
-      `;
-      editMemberList.appendChild(label);
-    });
   }
 
   function toggleEditMode() {
     isEditMode = !isEditMode;
-    const editContainer = document.getElementById('editModeContainer');
     const editBtn = document.getElementById('editMemberBtn');
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    const memberList = document.getElementById('memberList');
 
     if (isEditMode) {
-      editContainer.style.display = 'block';
-      editBtn.textContent = '編集を終了';
-      editBtn.style.backgroundColor = '#4CAF50';
+      editBtn.style.display = 'none';
+      deleteBtn.style.display = 'inline-block';
+      cancelBtn.style.display = 'inline-block';
+      memberList.style.border = '2px solid #2196F3';
+      memberList.style.padding = '10px';
+      memberList.style.borderRadius = '4px';
+      selectedMemberIds.clear();
     } else {
-      editContainer.style.display = 'none';
-      editBtn.textContent = '編集';
-      editBtn.style.backgroundColor = '#2196F3';
+      cancelEditMode();
     }
   }
 
   function cancelEditMode() {
     isEditMode = false;
-    const editContainer = document.getElementById('editModeContainer');
     const editBtn = document.getElementById('editMemberBtn');
-    const checkboxes = document.querySelectorAll('.member-checkbox');
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    const memberList = document.getElementById('memberList');
+    const memberBtns = document.querySelectorAll('#memberList .member-btn');
 
-    editContainer.style.display = 'none';
-    editBtn.textContent = '編集';
-    editBtn.style.backgroundColor = '#2196F3';
+    editBtn.style.display = 'inline-block';
+    deleteBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+    memberList.style.border = 'none';
+    memberList.style.padding = '';
+    
+    memberBtns.forEach(btn => {
+      btn.style.backgroundColor = '#fff';
+      btn.style.color = '#4a90e2';
+      btn.style.borderColor = '#4a90e2';
+    });
 
-    checkboxes.forEach(cb => cb.checked = false);
+    selectedMemberIds.clear();
+  }
+
+  function toggleMemberSelection(btn, memberId) {
+    if (selectedMemberIds.has(memberId)) {
+      selectedMemberIds.delete(memberId);
+      btn.style.backgroundColor = '#fff';
+      btn.style.color = '#4a90e2';
+      btn.style.borderColor = '#4a90e2';
+    } else {
+      selectedMemberIds.add(memberId);
+      btn.style.backgroundColor = '#f44336';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#f44336';
+    }
   }
 
   async function deleteSelectedMembers() {
-    const checkboxes = document.querySelectorAll('.member-checkbox:checked');
-    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
-
-    if (selectedIds.length === 0) {
+    if (selectedMemberIds.size === 0) {
       alert('削除するメンバーを選択してください');
       return;
     }
 
-    if (!confirm(`${selectedIds.length}人のメンバーを削除しますか？`)) {
+    if (!confirm(`${selectedMemberIds.size}人のメンバーを削除しますか？`)) {
       return;
     }
 
-    for (const id of selectedIds) {
-      await fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'deleteMember',
-          id: id
-        })
-      });
-    }
+    try {
+      for (const id of selectedMemberIds) {
+        const res = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'deleteMember',
+            id: id
+          })
+        });
 
-    cancelEditMode();
-    loadMembers();
-    loadHistories();
-    loadBalances();
-    loadSettlementSuggestions();
+        const result = await res.json();
+        if (!res.ok) {
+          throw new Error(result.error || '削除に失敗しました');
+        }
+      }
+
+      alert('メンバーを削除しました');
+      cancelEditMode();
+      loadMembers();
+      loadHistories();
+      loadBalances();
+      loadSettlementSuggestions();
+    } catch (error) {
+      alert('削除エラー: ' + error.message);
+    }
   }
 
   function toggleMemberSelect(btn, amountContainerId) {
