@@ -299,14 +299,6 @@
 
     try {
       for (const id of selectedMemberIds) {
-        const res = await fetch(GAS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'deleteMember',
-            id: id
-          })
-        });
 
         const result = await res.json();
         if (!res.ok) {
