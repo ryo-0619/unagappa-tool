@@ -23,8 +23,62 @@ body {
   text-align: center;
 }
 
+.header h1 {
+  margin: 0 0 1rem 0;
+}
+
+/* タブメニュー */
+.tab-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0 1rem 1rem 1rem;
+  background: var(--primary);
+}
+
+.tab-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.tab-btn.active {
+  background: #fff;
+  color: var(--primary);
+  border-color: #fff;
+}
+
 .container {
   padding: 1rem;
+}
+
+/* タブコンテンツ */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.tab-content h2 {
+  margin-top: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--primary);
+}
+
+.tab-content hr {
+  display: none;
 }
 
 .card-grid {
@@ -127,5 +181,9 @@ body {
 @media (min-width: 768px) {
   .card-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .tab-menu {
+    gap: 1rem;
   }
 }
